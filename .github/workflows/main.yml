@@ -8,7 +8,7 @@ on:
 
 jobs:
   fortify_dast_scan:
-    runs-on: [self-hosted, dast]   # targets your runner labeled "dast"
+    runs-on: [self-hosted, dast]   
     timeout-minutes: 15
 
     env:
@@ -18,9 +18,6 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      # ----- Windows runner (no pwsh required) -----
       - name: Start Fortify DAST scan (Windows PowerShell)
         if: runner.os == 'Windows'
         shell: powershell
