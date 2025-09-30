@@ -8,7 +8,7 @@ on:
 
 jobs:
   fortify_dast_scan:
-    runs-on: [self-hosted, dast]   # ✅ correct way
+    runs-on: [self-hosted, dast]   # targets your runner labeled "dast"
     timeout-minutes: 15
 
     env:
@@ -20,10 +20,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start Fortify DAST scan (PowerShell)
-        shell: pwsh
+      # ----- Windows runner (no pwsh required) -----
+      - name: Start Fortify DAST scan (Windows PowerShell)
+        if: runner.os == 'Windows'
+        shell: powershell
         run: |
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          # Ignore self-signed certs (same as your GitLab script); remove if you have a trusted cert
           [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 
           $base = $env:SCANCENTRAL_DAST_BASE.TrimEnd('/')
@@ -38,16 +41,7 @@ jobs:
 
           Write-Host "POST $url"
           $resp = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body -TimeoutSec 30
-
-          $json = $resp | ConvertTo-Json -Depth 12
-          $json | Out-File scdast-start-response.json -Encoding utf8
+          $resp | ConvertTo-Json -Depth 12 | Out-File scdast-start-response.json -Encoding utf8
 
           "### Fortify DAST scan started`n**Endpoint:** $url`n**Saved:** scdast-start-response.json" `
             | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
-
-      - name: Upload response artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: scdast-start-response
-          path: scdast-start-response.json
-          if-no-files-found: error
