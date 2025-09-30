@@ -8,8 +8,7 @@ on:
 
 jobs:
   fortify_dast_scan:
-    runs-on: self-hosted
-    labels: [dast]   # this makes it pick your runner called "dast"
+    runs-on: [self-hosted, dast]   # ✅ correct way
     timeout-minutes: 15
 
     env:
