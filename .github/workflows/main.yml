@@ -2,13 +2,10 @@ name: Fortify DAST Scan
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
-  pull_request:
 
 jobs:
   fortify_dast_scan:
-    runs-on: [self-hosted, dast]   
+    runs-on: [self-hosted, dast]
     timeout-minutes: 15
 
     env:
@@ -17,19 +14,15 @@ jobs:
       SSC_ENCODED_TOKEN: "NzNlZTllMTEtNGQ0OC00Mjk5LTlkODItOTMwNzA5YWIzN2Zi"
 
     steps:
-      - name: Checkout
-      - name: Start Fortify DAST scan (Windows PowerShell)
-        if: runner.os == 'Windows'
+      - name: Start Fortify DAST scan
         shell: powershell
         run: |
           [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          # Ignore self-signed certs (same as your GitLab script); remove if you have a trusted cert
           [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
 
           $base = $env:SCANCENTRAL_DAST_BASE.TrimEnd('/')
           $url  = "$base/scans/start-scan-cicd"
           $body = @{ cicdToken = $env:SCANCENTRAL_CICD_TOKEN } | ConvertTo-Json
-
           $headers = @{
             "Authorization" = "FORTIFYTOKEN $env:SSC_ENCODED_TOKEN"
             "Content-Type"  = "application/json"
@@ -37,8 +30,5 @@ jobs:
           }
 
           Write-Host "POST $url"
-          $resp = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body -TimeoutSec 30
+          $resp = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body -TimeoutSec 30 -Proxy $null
           $resp | ConvertTo-Json -Depth 12 | Out-File scdast-start-response.json -Encoding utf8
-
-          "### Fortify DAST scan started`n**Endpoint:** $url`n**Saved:** scdast-start-response.json" `
-            | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
